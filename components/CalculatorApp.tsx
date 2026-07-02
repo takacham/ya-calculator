@@ -7,6 +7,7 @@ import { TabBar, TabId } from "@/components/TabBar";
 import { UnitPriceCalculator } from "@/components/UnitPriceCalculator";
 import {
   AppState,
+  DailyHistory,
   RunningTotalItem,
   defaultState,
   loadState,
@@ -24,9 +25,7 @@ export function CalculatorApp() {
   }, []);
 
   useEffect(() => {
-    if (hydrated) {
-      saveState(state);
-    }
+    if (hydrated) saveState(state);
   }, [state, hydrated]);
 
   const updateField = useCallback(
@@ -69,6 +68,28 @@ export function CalculatorApp() {
     setState((prev) => ({ ...prev, runningTotalItems: [] }));
   }, []);
 
+  const handleSaveDailyHistory = useCallback(() => {
+    setState((prev) => {
+      const total = prev.runningTotalItems.reduce((sum, item) => sum + item.total, 0);
+      if (prev.runningTotalItems.length === 0 || total === 0) return prev;
+
+      const today = new Date().toLocaleDateString("ja-JP");
+
+      const history: DailyHistory = {
+        id: `${Date.now()}`,
+        date: today,
+        total,
+        items: prev.runningTotalItems,
+      };
+
+      return {
+        ...prev,
+        dailyHistories: [history, ...prev.dailyHistories],
+        runningTotalItems: [],
+      };
+    });
+  }, []);
+
   if (!hydrated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -95,6 +116,7 @@ export function CalculatorApp() {
             onCalculate={handleCaseCalculate}
           />
         )}
+
         {activeTab === "unit" && (
           <UnitPriceCalculator
             unitPrice={state.unitPrice}
@@ -106,12 +128,15 @@ export function CalculatorApp() {
             onCalculate={handleSalesCalculate}
           />
         )}
+
         {activeTab === "total" && (
           <RunningTotalCalculator
             items={state.runningTotalItems}
+            dailyHistories={state.dailyHistories}
             onAdd={handleAddItem}
             onUndo={handleUndo}
             onClear={handleClear}
+            onSaveDailyHistory={handleSaveDailyHistory}
           />
         )}
       </main>
