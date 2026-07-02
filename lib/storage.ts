@@ -53,7 +53,7 @@ export function loadState(): AppState {
 return {
   ...defaultState,
   ...parsed,
-  runningTotalItems: (parsed.runningTotalItems ?? []).map((item: any) => ({
+  runningTotalItems: (parsed.runningTotalItems ?? []).map((item: RunningTotalItem) => ({
     ...item,
     name: item.name ?? "",
   })),
