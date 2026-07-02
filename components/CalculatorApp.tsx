@@ -183,7 +183,7 @@ export function CalculatorApp() {
           <RunningTotalCalculator
             items={state.runningTotalItems}
             dailyHistories={state.dailyHistories}
-            productCandidates={state.productCandidates}
+            productCandidates={state.productCandidates ?? []}
             onAdd={handleAddItem}
             onUndo={handleUndo}
             onClear={handleClear}
