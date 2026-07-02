@@ -55,6 +55,7 @@ export function RunningTotalCalculator({
       <div className="flex flex-col gap-5">
         <LargeInput
           label="商品名"
+          type="text"
           placeholder="例：トマト"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -62,6 +63,7 @@ export function RunningTotalCalculator({
 
         <LargeInput
           label="単価"
+          type="number"
           placeholder="1580"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
@@ -69,6 +71,7 @@ export function RunningTotalCalculator({
 
         <LargeInput
           label="数量"
+          type="number"
           placeholder="5"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
