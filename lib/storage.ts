@@ -6,6 +6,13 @@ export interface RunningTotalItem {
   total: number;
 }
 
+export interface DailyHistory {
+  id: string;
+  date: string;
+  total: number;
+  items: RunningTotalItem[];
+}
+
 export interface AppState {
   casePrice: string;
   quantityInCase: string;
@@ -15,6 +22,7 @@ export interface AppState {
   salesTotalResult: number | null;
   salesExpression: string | null;
   runningTotalItems: RunningTotalItem[];
+  dailyHistories: DailyHistory[];
 }
 
 const STORAGE_KEY = "ya-calculator-state";
@@ -28,7 +36,9 @@ export const defaultState: AppState = {
   salesTotalResult: null,
   salesExpression: null,
   runningTotalItems: [],
+  dailyHistories: [],
 };
+
 
 export function loadState(): AppState {
   if (typeof window === "undefined") return defaultState;
@@ -39,14 +49,16 @@ export function loadState(): AppState {
 
     const parsed = JSON.parse(raw) as Partial<AppState>;
 
-    return {
-      ...defaultState,
-      ...parsed,
-      runningTotalItems: (parsed.runningTotalItems ?? []).map((item: any) => ({
-        ...item,
-        name: item.name ?? "",
-      })),
-    };
+  
+return {
+  ...defaultState,
+  ...parsed,
+  runningTotalItems: (parsed.runningTotalItems ?? []).map((item: any) => ({
+    ...item,
+    name: item.name ?? "",
+  })),
+  dailyHistories: parsed.dailyHistories ?? [],
+};
   } catch {
     return defaultState;
   }
