@@ -8,6 +8,7 @@ import { UnitPriceCalculator } from "@/components/UnitPriceCalculator";
 import {
   AppState,
   DailyHistory,
+  ProductCandidate,
   RunningTotalItem,
   defaultState,
   loadState,
@@ -51,11 +52,56 @@ export function CalculatorApp() {
   );
 
   const handleAddItem = useCallback((item: RunningTotalItem) => {
-    setState((prev) => ({
-      ...prev,
-      runningTotalItems: [...prev.runningTotalItems, item],
-    }));
+    setState((prev) => {
+      const productName = item.name.trim();
+
+      const exists = prev.productCandidates.some(
+        (product) => product.name === productName
+      );
+
+      const nextProductCandidates =
+        productName && !exists
+          ? [
+              {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+                name: productName,
+                image: item.image ?? "",
+              },
+              ...prev.productCandidates,
+            ]
+          : prev.productCandidates.map((product) =>
+              product.name === productName
+                ? { ...product, image: item.image ?? product.image }
+                : product
+            );
+
+      return {
+        ...prev,
+        runningTotalItems: [...prev.runningTotalItems, item],
+        productCandidates: nextProductCandidates,
+      };
+    });
   }, []);
+
+  const handleUpdateProductCandidate = useCallback(
+    (product: ProductCandidate) => {
+      setState((prev) => {
+        const exists = prev.productCandidates.some(
+          (item) => item.name === product.name
+        );
+
+        return {
+          ...prev,
+          productCandidates: exists
+            ? prev.productCandidates.map((item) =>
+                item.name === product.name ? product : item
+              )
+            : [product, ...prev.productCandidates],
+        };
+      });
+    },
+    []
+  );
 
   const handleUndo = useCallback(() => {
     setState((prev) => ({
@@ -70,7 +116,11 @@ export function CalculatorApp() {
 
   const handleSaveDailyHistory = useCallback(() => {
     setState((prev) => {
-      const total = prev.runningTotalItems.reduce((sum, item) => sum + item.total, 0);
+      const total = prev.runningTotalItems.reduce(
+        (sum, item) => sum + item.total,
+        0
+      );
+
       if (prev.runningTotalItems.length === 0 || total === 0) return prev;
 
       const today = new Date().toLocaleDateString("ja-JP");
@@ -133,10 +183,12 @@ export function CalculatorApp() {
           <RunningTotalCalculator
             items={state.runningTotalItems}
             dailyHistories={state.dailyHistories}
+            productCandidates={state.productCandidates}
             onAdd={handleAddItem}
             onUndo={handleUndo}
             onClear={handleClear}
             onSaveDailyHistory={handleSaveDailyHistory}
+            onUpdateProductCandidate={handleUpdateProductCandidate}
           />
         )}
       </main>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { ChangeEvent, useMemo, useState } from "react";
 import { LargeButton } from "./LargeButton";
 import { LargeInput } from "./LargeInput";
 import {
   DailyHistory,
+  ProductCandidate,
   RunningTotalItem,
   createRunningTotalItem,
   formatYen,
@@ -14,25 +15,71 @@ import {
 interface RunningTotalCalculatorProps {
   items: RunningTotalItem[];
   dailyHistories: DailyHistory[];
+  productCandidates: ProductCandidate[];
   onAdd: (item: RunningTotalItem) => void;
   onUndo: () => void;
   onClear: () => void;
   onSaveDailyHistory: () => void;
+  onUpdateProductCandidate: (product: ProductCandidate) => void;
 }
 
 export function RunningTotalCalculator({
   items,
   dailyHistories,
+  productCandidates,
   onAdd,
   onUndo,
   onClear,
   onSaveDailyHistory,
+  onUpdateProductCandidate,
 }: RunningTotalCalculatorProps) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState("");
+  const [image, setImage] = useState("");
 
   const grandTotal = items.reduce((sum, item) => sum + item.total, 0);
+
+  const filteredCandidates = useMemo(() => {
+    const keyword = name.trim();
+
+    if (!keyword) return productCandidates.slice(0, 8);
+
+    return productCandidates
+      .filter((product) => product.name.includes(keyword))
+      .slice(0, 8);
+  }, [name, productCandidates]);
+
+  function handleSelectCandidate(product: ProductCandidate) {
+    setName(product.name);
+    setImage(product.image ?? "");
+  }
+
+  function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      const result = reader.result;
+
+      if (typeof result !== "string") return;
+
+      setImage(result);
+
+      const productName = name.trim();
+      if (!productName) return;
+
+      onUpdateProductCandidate({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+        name: productName,
+        image: result,
+      });
+    };
+
+    reader.readAsDataURL(file);
+  }
 
   function handleAdd() {
     const parsedPrice = parseNumber(price);
@@ -41,11 +88,12 @@ export function RunningTotalCalculator({
     if (parsedPrice === null || parsedQuantity === null) return;
     if (parsedQuantity === 0) return;
 
-    onAdd(createRunningTotalItem(parsedPrice, parsedQuantity, name));
+    onAdd(createRunningTotalItem(parsedPrice, parsedQuantity, name, image));
 
     setName("");
     setPrice("");
     setQuantity("");
+    setImage("");
   }
 
   return (
@@ -60,6 +108,66 @@ export function RunningTotalCalculator({
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
+
+        {filteredCandidates.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {filteredCandidates.map((product) => (
+              <button
+                key={product.id}
+                type="button"
+                onClick={() => handleSelectCandidate(product)}
+                className="flex min-w-24 flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
+              >
+                {product.image ? (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="h-16 w-16 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gray-100 text-2xl">
+                    🧾
+                  </div>
+                )}
+
+                <span className="max-w-20 truncate text-sm font-bold">
+                  {product.name}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 text-base font-medium text-gray-500">
+            商品写真
+          </div>
+
+          <div className="flex items-center gap-4">
+            {image ? (
+              <img
+                src={image}
+                alt={name || "商品写真"}
+                className="h-24 w-24 rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-gray-100 text-4xl">
+                📷
+              </div>
+            )}
+
+            <label className="flex-1 rounded-2xl bg-gray-900 px-5 py-4 text-center text-lg font-bold text-white">
+              写真を選ぶ
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleImageChange}
+                className="hidden"
+              />
+            </label>
+          </div>
+        </div>
 
         <LargeInput
           label="単価"
@@ -90,18 +198,32 @@ export function RunningTotalCalculator({
         ) : (
           <ul className="flex flex-col gap-3">
             {items.map((item, index) => (
-              <li key={item.id} className="border-b pb-3">
-                <div className="text-lg font-bold">
-                  {index + 1}. {item.name || "商品名なし"}
-                </div>
+              <li key={item.id} className="flex gap-3 border-b pb-3">
+                {item.image ? (
+                  <img
+                    src={item.image}
+                    alt={item.name || "商品写真"}
+                    className="h-16 w-16 rounded-xl object-cover"
+                  />
+                ) : (
+                  <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-gray-100 text-2xl">
+                    🧾
+                  </div>
+                )}
 
-                <div className="flex justify-between text-xl font-bold">
-                  <span>
-                    {item.price.toLocaleString("ja-JP")} ×{" "}
-                    {item.quantity.toLocaleString("ja-JP")}
-                  </span>
+                <div className="flex-1">
+                  <div className="text-lg font-bold">
+                    {index + 1}. {item.name || "商品名なし"}
+                  </div>
 
-                  <span>{formatYen(item.total)}</span>
+                  <div className="flex justify-between text-xl font-bold">
+                    <span>
+                      {item.price.toLocaleString("ja-JP")} ×{" "}
+                      {item.quantity.toLocaleString("ja-JP")}
+                    </span>
+
+                    <span>{formatYen(item.total)}</span>
+                  </div>
                 </div>
               </li>
             ))}
