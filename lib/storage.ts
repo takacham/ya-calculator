@@ -1,5 +1,6 @@
 export interface RunningTotalItem {
   id: string;
+  name: string;
   price: number;
   quantity: number;
   total: number;
@@ -35,11 +36,16 @@ export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState;
+
     const parsed = JSON.parse(raw) as Partial<AppState>;
+
     return {
       ...defaultState,
       ...parsed,
-      runningTotalItems: parsed.runningTotalItems ?? [],
+      runningTotalItems: (parsed.runningTotalItems ?? []).map((item: any) => ({
+        ...item,
+        name: item.name ?? "",
+      })),
     };
   } catch {
     return defaultState;
@@ -76,10 +82,12 @@ export function formatUnitPrice(value: number): string {
 
 export function createRunningTotalItem(
   price: number,
-  quantity: number
+  quantity: number,
+  name = ""
 ): RunningTotalItem {
   return {
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+    name,
     price,
     quantity,
     total: price * quantity,
